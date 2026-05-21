@@ -174,8 +174,7 @@ const signInWithGoogle = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // 🔥 Yeh line live Vercel URL aur localhost dono par automatic sahi chalegi
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: `${window.location.origin}/login`, 
         queryParams: {
           access_type: 'offline',
           prompt: 'select_account',
