@@ -36,11 +36,11 @@ export default function App() {
             >
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
             </Route>
 
-            {/* Reset password & OAuth callback are reachable while logged in */}
+            {/* Reset password, forgot password & OAuth callback are reachable while logged in */}
             <Route element={<AuthLayout />}>
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
             </Route>
             <Route path="/auth/callback" element={<AuthCallback />} />

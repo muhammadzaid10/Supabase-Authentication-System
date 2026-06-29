@@ -169,33 +169,49 @@ export function AuthProvider({ children }) {
     })
   }, [])
 
-const signInWithGoogle = async () => {
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/login`, 
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'select_account',
+  const signInWithGoogle = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/login`,
+          flowType: 'pkce',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
         },
-      },
-    })
-    if (error) throw error
-    return { data, error: null }
-  } catch (error) {
-    console.error("Google Auth Error:", error.message)
-    return { data: null, error }
-  }
-}
+      })
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      console.error("Google Auth Error:", error.message)
+      return { data: null, error }
+    }
+  }, [])
 
   const sendPasswordReset = useCallback(async (email) => {
-    return supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    // We use signInWithOtp instead of resetPasswordForEmail because Supabase 
+    // has a known limitation where 6-digit recovery OTPs do not return a session 
+    // when PKCE is enabled. signInWithOtp securely logs the user in so they can change it.
+    return supabase.auth.signInWithOtp({ 
+      email,
+      options: { 
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/reset-password`
+      } 
     })
   }, [])
 
+  const verifyOtp = useCallback(async (email, token, type) => {
+    return supabase.auth.verifyOtp({ email, token, type })
+  }, [])
+
   const updatePassword = useCallback(async (newPassword) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      return { error: new Error('Session expired. Please request a new OTP.') }
+    }
     return supabase.auth.updateUser({ password: newPassword })
   }, [])
 
@@ -247,6 +263,7 @@ const signInWithGoogle = async () => {
     signUp,
     signInWithGoogle,
     sendPasswordReset,
+    verifyOtp,
     updatePassword,
     updateUserMetadata,
     deleteAccount,

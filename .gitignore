@@ -10,3 +10,6 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 *.swp
+
+.vercel
+.env*

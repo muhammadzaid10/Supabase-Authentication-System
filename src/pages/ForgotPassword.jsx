@@ -1,16 +1,19 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Mail, ArrowRight, ArrowLeft, MailCheck } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Mail, ArrowRight, ArrowLeft, MailCheck, KeyRound } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import FormField from '../components/FormField'
 
 export default function ForgotPassword() {
-  const { sendPasswordReset } = useAuth()
+  const { sendPasswordReset, verifyOtp } = useAuth()
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
+  const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [verifying, setVerifying] = useState(false)
   const [sent, setSent] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -27,7 +30,35 @@ export default function ForgotPassword() {
       return
     }
     setSent(true)
-    toast.success('Reset link sent')
+    toast.success('OTP sent to your email')
+  }
+
+  const handleVerify = async (e) => {
+    e.preventDefault()
+    if (!otp) return setError('OTP is required')
+    setError('')
+    setVerifying(true)
+    
+    try {
+      const { data, error: err } = await verifyOtp(email, otp, 'email')
+      
+      if (err) {
+        throw err
+      }
+      
+      // Enforce that we MUST have a session before proceeding to reset password
+      if (!data?.session) {
+        throw new Error('Verification succeeded but no session was established. Make sure your email template is correct.')
+      }
+      
+      toast.success('Email verified successfully')
+      navigate('/reset-password', { replace: true })
+    } catch (error) {
+      console.error('Verification error:', error)
+      toast.error(error.message || 'An error occurred during verification')
+    } finally {
+      setVerifying(false)
+    }
   }
 
   return (
@@ -47,7 +78,7 @@ export default function ForgotPassword() {
                 <span className="font-serif italic text-aurora">password</span>?
               </h1>
               <p className="text-sm text-zinc-500">
-                Enter your email and we'll send you a secure link to reset it.
+                Enter your email and we'll send you an OTP to reset it.
               </p>
             </div>
 
@@ -76,7 +107,7 @@ export default function ForgotPassword() {
                   </span>
                 ) : (
                   <>
-                    Send reset link <ArrowRight size={16} />
+                    Send OTP <ArrowRight size={16} />
                   </>
                 )}
               </motion.button>
@@ -94,27 +125,58 @@ export default function ForgotPassword() {
             key="sent"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-6 text-center"
+            className="space-y-7"
           >
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-grad-aurora-soft ring-1 ring-white/10">
-              <MailCheck className="text-aurora-cyan" size={24} />
-            </div>
-            <div className="space-y-2">
+            <div className="space-y-2 text-center">
+              <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-grad-aurora-soft ring-1 ring-white/10">
+                <MailCheck className="text-aurora-cyan" size={24} />
+              </div>
               <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-                Check your inbox
+                Enter your OTP
               </h1>
               <p className="mx-auto max-w-xs text-sm text-zinc-500">
-                We sent a reset link to{' '}
-                <span className="text-zinc-200">{email}</span>. It expires in 60
-                minutes.
+                We sent a code to <span className="text-zinc-200">{email}</span>
               </p>
             </div>
-            <div className="space-y-3">
-              <Link to="/login" className="btn-ghost inline-flex w-full">
-                Back to sign in
-              </Link>
+
+            <form onSubmit={handleVerify} className="space-y-4">
+              <FormField
+                icon={KeyRound}
+                label="Verification Code"
+                name="otp"
+                type="text"
+                placeholder="Enter 6-digit code"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                error={error}
+                autoComplete="one-time-code"
+              />
+
+              <motion.button
+                whileTap={{ scale: 0.99 }}
+                type="submit"
+                disabled={verifying}
+                className="btn-aurora w-full"
+              >
+                {verifying ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner /> Verifying…
+                  </span>
+                ) : (
+                  <>
+                    Verify & Continue <ArrowRight size={16} />
+                  </>
+                )}
+              </motion.button>
+            </form>
+
+            <div className="space-y-3 text-center">
               <button
-                onClick={() => setSent(false)}
+                onClick={() => {
+                  setSent(false)
+                  setOtp('')
+                  setError('')
+                }}
                 className="text-xs text-zinc-500 transition-colors hover:text-zinc-200"
               >
                 Use a different email

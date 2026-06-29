@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import FormField from '../components/FormField'
 
 export default function ResetPassword() {
-  const { updatePassword } = useAuth()
+  const { updatePassword, session } = useAuth()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [errors, setErrors] = useState({})
@@ -27,14 +27,23 @@ export default function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validate()) return
-    setSubmitting(true)
-    const { error } = await updatePassword(password)
-    setSubmitting(false)
-    if (error) {
-      toast.error(error.message)
+
+    if (!session) {
+      toast.error('Session missing or expired. Please verify your OTP again.')
+      navigate('/forgot-password', { replace: true })
       return
     }
-    toast.success('Password updated')
+
+    setSubmitting(true)
+    const { data, error } = await updatePassword(password)
+    setSubmitting(false)
+    if (error) {
+      console.error('Password update error:', error)
+      toast.error(error.message || 'Failed to update password. Please try a different one.')
+      return
+    }
+    
+    toast.success('Password updated successfully')
     navigate('/dashboard', { replace: true })
   }
 

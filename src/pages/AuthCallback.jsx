@@ -20,6 +20,8 @@ export default function AuthCallback() {
       const params = new URLSearchParams(window.location.search)
       const code = params.get('code')
 
+      const next = params.get('next') || '/dashboard'
+
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!alive) return
@@ -30,12 +32,12 @@ export default function AuthCallback() {
           return
         }
 
-        navigate('/dashboard', { replace: true })
+        navigate(next, { replace: true })
         return
       }
 
       if (!loading) {
-        navigate(user ? '/dashboard' : '/login', { replace: true })
+        navigate(user ? next : '/login', { replace: true })
       }
     }
 
