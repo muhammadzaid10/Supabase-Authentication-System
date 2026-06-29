@@ -107,7 +107,7 @@ export default function ForgotPassword() {
                   </span>
                 ) : (
                   <>
-                    Send OTP <ArrowRight size={16} />
+                    Reset Password <ArrowRight size={16} />
                   </>
                 )}
               </motion.button>
